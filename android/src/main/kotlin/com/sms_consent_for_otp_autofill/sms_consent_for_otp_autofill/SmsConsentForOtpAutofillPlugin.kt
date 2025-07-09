@@ -19,6 +19,9 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import java.util.regex.Pattern
 import android.content.ComponentName
+import android.util.Log
+import com.google.android.gms.auth.api.identity.GetPhoneNumberHintIntentRequest
+import com.google.android.gms.auth.api.identity.Identity
 
 /** SmsConsentForOtpAutofillPlugin */
 class SmsConsentForOtpAutofillPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
@@ -28,6 +31,7 @@ class SmsConsentForOtpAutofillPlugin: FlutterPlugin, MethodCallHandler, Activity
   companion object {
     private const val CREDENTIAL_PICKER_REQUEST = 100
     private const val SMS_CONSENT_REQUEST = 200
+       private const val TAG = "SmsConsentPlugin"
   }
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
