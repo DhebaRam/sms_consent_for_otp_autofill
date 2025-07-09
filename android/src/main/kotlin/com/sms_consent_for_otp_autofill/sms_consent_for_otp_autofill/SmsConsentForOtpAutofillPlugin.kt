@@ -38,7 +38,7 @@ class SmsConsentForOtpAutofillPlugin: FlutterPlugin, MethodCallHandler, Activity
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
     when (call.method) {
       "requestPhoneNumber" -> {
-        requestHint()
+        requestPhoneHint()
         result.success(null)
       }
       "requestSms" -> {
@@ -66,11 +66,21 @@ class SmsConsentForOtpAutofillPlugin: FlutterPlugin, MethodCallHandler, Activity
       when (requestCode) {
         CREDENTIAL_PICKER_REQUEST -> {// Obtain the phone number from the result
           if (resultCode == Activity.RESULT_OK && data != null) {
-            channel.invokeMethod("selectedPhoneNumber", data.getParcelableExtra<Credential>(Credential.EXTRA_KEY)?.id)
-          } else {
-            channel.invokeMethod("selectedPhoneNumber", null)
-          }
-          true
+
+                        val phoneNumber1 = Identity.getSignInClient(mActivity)
+                            .getPhoneNumberFromIntent(data)
+                        Log.d("SmsConsentPlugin", "📞 Selected Phone Number: $phoneNumber1")
+                        channel.invokeMethod("selectedPhoneNumber", phoneNumber1)
+                    } else {
+                        channel.invokeMethod("selectedPhoneNumber", null)
+                    }
+                    true
+          // if (resultCode == Activity.RESULT_OK && data != null) {
+          //   channel.invokeMethod("selectedPhoneNumber", data.getParcelableExtra<Credential>(Credential.EXTRA_KEY)?.id)
+          // } else {
+          //   channel.invokeMethod("selectedPhoneNumber", null)
+          // }
+          // true
         }
         SMS_CONSENT_REQUEST -> {// Obtain the phone number from the result
           if (resultCode == Activity.RESULT_OK && data != null) {
@@ -96,15 +106,36 @@ class SmsConsentForOtpAutofillPlugin: FlutterPlugin, MethodCallHandler, Activity
   override fun onDetachedFromActivity() {}
 
   /// Construct a request for phone numbers and show the picker
-  private fun requestHint() {
-    mActivity.startIntentSenderForResult(
-      Credentials.getClient(mActivity).getHintPickerIntent(HintRequest.Builder()
-        .setPhoneNumberIdentifierSupported(true)
-        .build()).intentSender,
-      CREDENTIAL_PICKER_REQUEST,
-      null, 0, 0, 0
-    )
-  }
+    private fun requestPhoneHint() {
+        val request = GetPhoneNumberHintIntentRequest.builder().build()
+        Identity.getSignInClient(mActivity)
+            .getPhoneNumberHintIntent(request)
+            .addOnSuccessListener { intentSender ->
+                try {
+                    Log.d("SmsConsentPlugin", "✅ Phone hint intent launched.")
+                    mActivity.startIntentSenderForResult(
+                        intentSender.intentSender,
+                        CREDENTIAL_PICKER_REQUEST,
+                        null, 0, 0, 0
+                    )
+                } catch (e: IntentSender.SendIntentException) {
+                    Log.e("SmsConsentPlugin", "❌ Failed to launch hint picker", e)
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("SmsConsentPlugin", "❌ Failed to get hint intent", e)
+            }
+    }
+  /// Construct a request for phone numbers and show the picker
+  // private fun requestHint() {
+  //   mActivity.startIntentSenderForResult(
+  //     Credentials.getClient(mActivity).getHintPickerIntent(HintRequest.Builder()
+  //       .setPhoneNumberIdentifierSupported(true)
+  //       .build()).intentSender,
+  //     CREDENTIAL_PICKER_REQUEST,
+  //     null, 0, 0, 0
+  //   )
+  // }
 
   private val smsVerificationReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
